@@ -19,11 +19,6 @@
       "title": "今天天气挺好，适合晾衣服",
       "author": "我",
       "id": 4
-    },
-    {
-      "title": "今天天气挺好，适合晾衣服",
-      "author": "我",
-      "id": 5
     }
   ],
   "comments": [
@@ -31,6 +26,11 @@
       "id": 1,
       "body": "some comment",
       "postId": 1
+    },
+    {
+      "body": "想吃辣的",
+      "postId": 2,
+      "id": 2
     }
   ],
   "profile": {
