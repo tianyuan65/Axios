@@ -79,7 +79,13 @@
                     * ![添加了想吃辣的评论](images/POST-%E6%B7%BB%E5%8A%A0%E6%96%B0%E7%9A%84%E5%86%85%E5%AE%B9%EF%BC%88%E8%AF%84%E8%AE%BA%EF%BC%89.PNG)
                     * ![控制台查看新添加的评论](images/%E6%8E%A7%E5%88%B6%E5%8F%B0%E6%9F%A5%E7%9C%8B%E6%88%90%E5%8A%9F%E6%B7%BB%E5%8A%A0%E8%AF%84%E8%AE%BA.PNG)
     * 1.6 axios请求响应结果的结构
-        * 
+        * 以上一个为例，点击GET请求的按钮，可以在控制台查看到response输出的结果。点开后会有config、data、header、request等属性。
+            * config：配置对象，里面会有请求类型、请求URL、请求体等内容。其中adapter中可以查看到先前添加、删除、修改的内容的个数
+            * data：响应体的结果，也就是服务器返回的请求体内容。它是个对象，因为axios自动把服务器返回的结果进行了json解析，把它转成了对象，以便于对结果进行处理。可以查看先前添加、删除、修改的请求体内容
+            * header：相应的头信息
+            * request：原生的AJAX请求对象，目前已知，axios用来发送AJAX请求，而发送AJAX请求就要使用底层的XMLHttpRequest实例对象，而request属性保存的就是当前axios发送请求时创建的AJAX请求对象，也就是XMLHttpRequest实例对象。
+            * status：响应状态码
+            * statusText：响应的状态字符串
 
 * **第二章：axios源码分析**
 
