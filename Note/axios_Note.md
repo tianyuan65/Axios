@@ -138,7 +138,23 @@
                   ```
             * cancelToken：取消AJAX请求的设置
             * decompress：判断是否对响应结果进行解压操作，默认是做解压的，只在使用node.js的环境中设置
-
+    * 1.8 axios默认配置 对axios中重复、冗余的代码进行整理，以便在后续简洁书写
+        * 书写格式为```axios.defaults.设置内容=''/{}```。以04-axios默认配置.html举例，设置单击响应函数前设置默认配置。
+            * ```
+                axios.defaults.method='GET'  //设置默认的请求类型为GET
+                axios.defaults.baseURL='http://localhost:3000'  //设置基础URL为http://localhost:3000
+                axios.defaults.params={id:100}  //设置默认参数为id=100
+                axios.defaults.headers={}
+                axios.defaults.timeout=3000  //设置超时时间，若在规定的超时时间内没有返回结果，就取消请求
+                btns[0].onclick=function(){
+                    axios({
+                        url:'/posts',
+                    }).then(response=>{
+                        console.log(response);
+                    })
+                }
+              ```
+            * 如上述代码，设置默认请求类型后，在axios中可以不写请求类型；设置baseURL为http://localhost:3000，在axios中只写posts这个资源名称即可(后面还有的话继续写就行)；设置默认的URL参数，在此设置为id：100，点击发送请求按钮后，可以在控制台查看被添加的内容；设置超时时间。
 
 * **第二章：axios源码分析**
 
