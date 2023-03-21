@@ -155,6 +155,56 @@
                 }
               ```
             * 如上述代码，设置默认请求类型后，在axios中可以不写请求类型；设置baseURL为http://localhost:3000，在axios中只写posts这个资源名称即可(后面还有的话继续写就行)；设置默认的URL参数，在此设置为id：100，点击发送请求按钮后，可以在控制台查看被添加的内容；设置超时时间。
+    * 1.9 axios创建实例对象发送AJAX请求
+        * 创建名为geng的实例对象，通过create()来创建方法，方法里接收的参数为配置对象，在里面设置默认配置，发送请求方式有两种，1、需要geng()中传递配置对象的具体内容，并调用then方法指定成功的回调；2、借助于封装好的方法发送请求，调用get()，其中接收的参数为配置对象的具体内容，就是```'/react/'```，最终调用then方法并指定成功的回调
+            * ```
+                const geng=axios.create({
+                    baseURl:'https://www.bootcdn.cn/',
+                    timeout:2000
+                })
+                //1.
+                geng({
+                    url:'/react/'
+                }).then(response=>{
+                    console.log(response);
+                })
+                //2.
+                geng.get('/react/').then(response=>{
+                    console.log(response);
+                })
+              ```
+        * 创建实例对象发送请求的优势：
+            * 项目中，接口数据服务来自多方服务器，这多方服务器都提供了数据服务，在发送请求时，若使用默认配置的方式只能向其中一方服务器发送请求。想要向其他的服务器发送请求就需要创建多个默认配置，代码重复且太多。此时使用创建实例对象的方法，来对重复的代码进行整合，在需要向多方服务器发送不同的请求时，就可以直接调用与之相对应的方法，向方法中传入具体配置对象作为参数，并在最后调用指定的成功的回调。存在多方服务器时代码如下：
+            * ```
+                // 创建实例对象geng  https://www.bootcdn.cn/
+                const geng=axios.create({
+                    baseURl:'https://www.bootcdn.cn/',
+                    timeout:2000
+                })
+
+                // 创建实例对象boot
+                const boot=axios.create({
+                    baseURl:'https://www.youtube.com/',
+                    timeout:2000
+                })
+
+                // 在此 geng 与axios 对象的功能几乎是一样的
+                // geng({
+                //     url:'/react/'
+                // }).then(response=>{
+                //     console.log(response);
+                // })
+                geng.get('/react/').then(response=>{
+                    console.log(response);
+                })
+
+                boot({
+                    url:''
+                }).then(response=>{
+                    console.log(response)
+                })
+                boot.get('').then(response=>{console.log(response)})
+              ```
 
 * **第二章：axios源码分析**
 
