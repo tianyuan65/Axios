@@ -56,7 +56,7 @@
             * DELETE请求
                 * ![Request header](images/DELETE-%E8%AF%B7%E6%B1%82header.PNG)
                 * ![成功删除请求体内容](images/DELETE-%E8%AF%B7%E6%B1%82%E4%BD%93.PNG)
-    * 1.5 axios其他方式方式请求
+    * 1.5 axios其他方式方式请求  Request method aliases
         * axios接收的对象，除了常用的那三个属性，还有其他的属性，在此简单举例，request方法和post方法
             * request()  --  axios.request(config)
                 * 查看请求内容的方法，书写格式和调用执行axios函数的方法相同，请求类型、启动好的想要发送请求的URL，最后调用then方法中的回调，可以展示请求体内容，后续点击按钮可查看最新的添加、删除甚至是修改的请求体内容
@@ -86,6 +86,59 @@
             * request：原生的AJAX请求对象，目前已知，axios用来发送AJAX请求，而发送AJAX请求就要使用底层的XMLHttpRequest实例对象，而request属性保存的就是当前axios发送请求时创建的AJAX请求对象，也就是XMLHttpRequest实例对象。
             * status：响应状态码
             * statusText：响应的状态字符串
+    * 1.7 axios配置对象  Request Config
+        * 指的是axios的在调用时，所接收的参数对象(就是大括号里的所有内容)。要点就是这个配置对象里到底有哪些属性。注：axios的诸多方法中但凡有config这个参数，就代表这个方法里接收的就是配置对象。
+        * 配置对象里可以设置的内容
+            * URL：指明到底是给谁发送这个请求，设置URL参数
+            * method：设置请求的类型，GET/POST/PUT/DELETE
+            * baseURL：设定URL的基础结构，例如```http://localhost:3000```。可以把baseURL这是成这个值，然后在设置URL的时候，只需设置后面的路径，不需要再写域名和协议，axios内部会自动将URL和baseURL进行结合，形成最终的URL结果。
+            * transformRequest：可以对请求的数据进行处理，处理完后，将处理的结果再发送给服务器
+            * transformResponse：对响应的结果做一些改变，改变之后，我们再对改变的结果进行自定义的处理。transformRequest和transformResponse这两个参数都是对请求参数和响应结果做预处理，处理完之后在进行发送请求和响应结果的处理
+            * headers：头信息，对请求头信息做配置。在某些项目中，进行身份校验时，要求在头信息中假如特殊的标识，以便检验请求是否满足条件，此时就可以借助headers对请求头信息进行控制。
+            * params：设定URL的参数，是一个对象，可以在对象中设置内容。
+            * paramSerializer：参数序列化的配置项，对请求的参数做序列化操作，转换成字符串。(看了段皇帝的代码)
+            * timeout：超时时间，发送请求时，如果超过了这个事件，此请求就会被取消，单位：ms
+            * withCredentials：跨域请求时，对cookie的携带做设置，false就是不携带，如果是true就可以在跨域请求时携带cookie
+            * adapter：对请求的适配器做设置，有两种方式，一、发送AJAX请求；二、在node.js中发送HTTP请求
+            * auth：对请求的基础验证设置用户名和密码的
+                * ```
+                    auth: {
+                        username: 'janedoe',
+                        password: 's00pers3cret'
+                    }
+                  ``` 
+            * responseType：对响应体结果的格式做设置，默认值为json格式的数据内容，接收响应结果后会对其进行转换
+            * responseEncoding：响应结果的编码，其值为utf8
+            * xsrfCookieName：跨站请求的标识，对cookie的名字做设置
+            * xsrfHeaderName：设置跨域请求的头信息。是一个安全设置，保证请求来自于自己的客户端，而不是未知的第三方的客户端
+            * onUploadProgress/onDownloadProgress:function(){}：上传和下载时的回调
+            * maxContentLength：设置HTTP响应体的最大尺寸，单位：字节byte
+            * maxBodyLength：设置请求体内容的最大尺寸
+            * validateStatus：设置响应结果的成功，当响应的状态码(xhr.status)的默认值大于等于200，小于300，即为成功，可以直接使用文档里默认写入的，除非我自己设置了成功与失败的规则，否则直接用默认的规则
+                * ```
+                    validateStatus: function (status) {
+                        return status >= 200 && status < 300; 
+                    },
+                  ```
+            * maxRedirects：最大跳转次数，向一个服务器端发送请求时做了跳转，判断是否还需要继续往前进行请求。最多调5次，只能在node.js中使用，前端AJAX中用不到
+            * socketPath：设置socket文件的位置，作用是向docker的守护进程发送请求的。若同时申请了socketPath和proxy(文件代理)，socketPath优先执行
+            * httpAgent/httpsAgent:new http.Agent/ps.Agent({ keepAlive: true })：对客户端的信息做设置
+            * proxy：适用在node.js的服务端中
+                * ```
+                     proxy: {
+                        protocol: 'https',
+                        host: '127.0.0.1',
+                        // hostname: '127.0.0.1' // Takes precedence over 'host' if both are defined
+                        port: 9000,
+                        auth: {
+                        username: 'mikeymike',
+                        password: 'rapunz3l'
+                        }
+                    }
+                  ```
+            * cancelToken：取消AJAX请求的设置
+            * decompress：判断是否对响应结果进行解压操作，默认是做解压的，只在使用node.js的环境中设置
+
 
 * **第二章：axios源码分析**
 
