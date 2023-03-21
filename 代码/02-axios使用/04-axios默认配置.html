@@ -25,7 +25,6 @@
         axios.defaults.method='GET'  //设置默认的请求类型为GET
         axios.defaults.baseURL='http://localhost:3000'  //设置基础URL为http://localhost:3000
         axios.defaults.params={id:100}  //设置默认参数为id=100
-        axios.defaults.headers={}
         axios.defaults.timeout=3000  //设置超时时间，若在规定的超时时间内没有返回结果，就取消请求
         btns[0].onclick=function(){
             axios({
