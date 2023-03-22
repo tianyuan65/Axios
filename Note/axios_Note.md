@@ -205,6 +205,103 @@
                 })
                 boot.get('').then(response=>{console.log(response)})
               ```
+    * 1.10 Interceptor(拦截器)
+        * 拦截器是一些函数，分为两大类，一种叫请求拦截器，另一种叫响应拦截器。
+        * 作用：
+            * 请求拦截器：在发送请求前，借助回调函数，来对请求的参数和内容进行处理和检测，没有问题就发送请求，若有问题就停止并取消请求。就像机场过安检一样，查完我的大行李，进去查我的随身行李，最后再查一下我自己。
+            * 响应拦截器：在处理结果之前，先对结果进行预处理，比如：对于失败的结果，对其整体做一个提醒和记录；对数据结果做格式化处理，没有问题的话，再交由我自己自定义的回调来做个性化处理，若有问题，直接在响应拦截器中处理掉即可。也像在机场过海关，看护照，看完护照看签证，看完签证看跟本人像不像，最后用迟疑的眼神给我盖章并放我走。
+        * 例子：
+            * 1. 因为没有错误(就是没有失败的情况)，先执行请求拦截器成功的回调，再交给响应拦截器并执行响应拦截器成功的回调，最后在我指定的回调中进行个性化处理。
+                * ![两个拦截器都成功执行](images/%E4%B8%A4%E7%A7%8D%E6%8B%A6%E6%88%AA%E5%99%A8%E9%83%BD%E6%88%90%E5%8A%9F%EF%BC%8C%E6%9C%80%E5%90%8E%E8%87%AA%E5%AE%9A%E4%B9%89%E5%9B%9E%E8%B0%83%E5%A4%84%E7%90%86.PNG)
+            * 若在请求拦截器中抛出一个错误或者在请求拦截器的指定的回调中返回一个新的Promise，并在里面执行失败的方法时，请求拦截器的函数会执行成功的回调，但响应拦截器会执行失败的回调，最后在我指定的回调中进行个性化处理时，也是会执行失败的回调或catch方法
+                * ![请求拦截器中的回调中抛出错误](images/%E8%AF%B7%E6%B1%82%E6%8B%A6%E6%88%AA%E5%99%A8%E6%8A%9B%E5%87%BA%E9%94%99%E8%AF%AF%E7%9A%84%E4%B8%80%E7%B3%BB%E5%88%97%E7%BB%93%E6%9E%9C.PNG)
+                * ```
+                    // 设置请求拦截器  config 配置对象
+                    axios.interceptors.request.use(function (config) {
+                        console.log('请求拦截器 成功');
+                        return config;
+                        //throw '参数有问题'
+                    }, function (error) {
+                        console.log('请求拦截器 失败');
+                        return Promise.reject(error);
+                    });
+                    // 设置响应拦截器
+                    axios.interceptors.response.use(function (response) {
+                        console.log('响应拦截器 成功');
+                        return response;
+                    }, function (error) {
+                        console.log('响应拦截器 失败');
+                        return Promise.reject(error);
+                    });
+                    // 发送请求
+                    axios({
+                        method:'GET',
+                        url:' http://localhost:3000/posts'
+                    }).then(response=>{
+                        console.log('自定义回调处理成功的结果');
+                        // console.log(response);
+                    }).catch(reason=>{
+                        console.warn('自定义失败的回调');
+                    })
+                ```
+            * 2. 请求拦截器和响应拦截器分别都有两个的情况下，各自指定的回调执行顺序与只有单个拦截器情况有所不同。如图所示，会先执行2号请求，再执行1号请求，往后的响应是按照书写顺序输出的。
+                * ![两种拦截器有多个时的执行顺序](images/%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F.PNG)
+                * 且在拦截器的指定回调内部可以进行增删改配置对象(config&response)中的参数，在控制台刷新后可以看到修改后的变化。**但我这边不知道是啥原因总执行不该执行的**
+                    * ![修改1号请求中config的params](images/%E8%AE%BE%E7%BD%AE%E9%BB%98%E8%AE%A4params.PNG)
+                    * **![后续记得加](images)**
+                * ```
+                    // 设置1号请求拦截器  config 配置对象
+                    axios.interceptors.request.use(function (config) {
+                        console.log('请求拦截器 成功 - 1号');
+                        // 修改config中的参数
+                        config.params={a:100}
+                        return config;
+                    }, function (error) {
+                        console.log('请求拦截器 失败 - 1号');
+                        return Promise.reject(error);
+                    });
+
+                    // 设置2号请求拦截器
+                    axios.interceptors.request.use(function (config) {
+                        console.log('请求拦截器 成功 - 2号');
+                        // 修改config中的参数
+                        config.timeout=2000
+                        return config;
+                    }, function (error) {
+                        console.log('请求拦截器 失败 - 2号');
+                        return Promise.reject(error);
+                    });
+
+                    // 设置1号响应拦截器
+                    axios.interceptors.response.use(function (response) {
+                        console.log('响应拦截器 成功 1号');
+                        return response.data
+                        // return response;
+                    }, function (error) {
+                        console.log('响应拦截器 失败 1号');
+                        return Promise.reject(error);
+                    });
+
+                    // 设置2号响应拦截器
+                    axios.interceptors.response.use(function (response) {
+                        console.log('响应拦截器 成功 2号');
+                        return response;
+                    }, function (error) {
+                        console.log('响应拦截器 失败 2号');
+                        return Promise.reject(error);
+                    });
+
+                    // 发送请求
+                    axios({
+                        method:'GET',
+                        url:' http://localhost:3000/posts'
+                    }).then(response=>{
+                        console.log('自定义回调处理成功的结果');
+                        // console.log(response);
+                    }).catch(reason=>{
+                        console.warn('自定义失败的回调');
+                    })
+                  ```
 
 * **第二章：axios源码分析**
 
