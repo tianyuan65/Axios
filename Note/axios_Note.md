@@ -302,6 +302,56 @@
                         console.warn('自定义失败的回调');
                     })
                   ```
+    * 1.11 如何取消请求
+        * 1. 添加配置对象的属性
+            * axios配置对象中添加cancelToken属性，cancelToken被赋值新的axios.CancelToken，其中传入的参数为一个函数，函数内又传入一个形参c
+        * 2. 声明全局变量
+            * ```let cancel=null```
+        * 3. 将c的值在函数内赋值给cancel
+            * ```cancel=c```
+        * 4. 给取消请求的按钮绑定事件，并在其中执行cancel函数
+            * ```
+                btns[1].onclick=function(){
+                    cancel()
+                }
+              ```
+        * 5. 但是按照上述步骤在控制台执行时，会看不到取消请求了的效果。所以需要在服务端(integrated terminal，也就是终端)给json-server添加延时响应的操作，```json-server --watch db.json -d 2000```，这样就可以在控制台中发送请求后，在规定的延时时间内取消请求的效果。
+            * ![启动端口添加延时响应后取消请求效果](images/%E5%8F%96%E6%B6%88%E8%AF%B7%E6%B1%82.PNG)
+        * 6. 有一种特殊情况，因网速问题，用户可能多次点击发送请求的按钮，此时就需要给发送请求设置一个限制，查看在规定的延时时间内连续发送请求时，前一个请求是否在继续发送，若上一个请求还在继续就会被取消。如何实现？**先检测上一个请求是否已经完成**，就是判断第二次或以上次数发送请求时，cancel的值是否是null。因为第二次发送请求时，cancel的值被赋予了c的值，所以在then方法指定的回调里将cancel值初始化```cancel=null```。这样的两手准备可以保证，多次发送请求时cancel值依然为null，而不是函数。整体代码如下
+        * ```
+            // 获取按钮
+            const btns=document.querySelectorAll('button')
+            // 声明全局变量
+            let cancel=null
+            // 发送请求
+            btns[0].onclick=function(){
+                // 检测上一次请求是否已经完成，若cancel值不是null，就说明上一次的请求还在继续发送
+                if(cancel !== null){
+                    // 取消上一次的请求
+                    cancel()
+                }
+                axios({
+                    method:'GET',
+                    url:' http://localhost:3000/posts',
+                    // 1. 添加配置对象的属性
+                    cancelToken:new axios.CancelToken(function(c){
+                        // 3. 将c的值赋值给cancel
+                        cancel=c
+                    })
+                }).then(response=>{
+                    console.log(response);
+                    // 将cancel的值初始化
+                    cancel=null
+                })
+            }
+
+            // 绑定第二个单击响应事件
+            btns[1].onclick=function(){
+                cancel()
+            }
+          ``` 
+            * ![多次发送请求，取消上一次请求](images/%E5%A4%9A%E6%AC%A1%E5%8F%91%E9%80%81%E8%AF%B7%E6%B1%82%E8%A2%AB%E5%8F%96%E6%B6%88%E4%B8%8A%E4%B8%80%E4%B8%AA%E8%AF%B7%E6%B1%82.PNG)
+
 
 * **第二章：axios源码分析**
 
