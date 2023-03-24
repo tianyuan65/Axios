@@ -357,7 +357,78 @@
         * ![目录结构](images/%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84.PNG)
     * 2.2 源码分析
         * 2.2.1 axios与Axios的关系
-            * 1. 
+            * 1. 从语法上来说，axios不是Axios的实例
+            * 2. 从功能上来说，axios是Axios的实例
+            * 3. axios是Axios.prototype.request函数bind()返回的函数
+            * 4. axios作为对象有Axios原型对象上的所有方法，有Axios对象上所有属性
+        * 2.2.2 instance与axios的区别
+            * 同：
+                * 1. 都是一个能发任意请求的函数：request(config)
+                * 2. 都有发特定请求的各种方法：get()/post()/put()/delete()
+                * 3. 都有默认配置和拦截器的属性：defaults/interceptors
+            * 异：
+                * 1. 默认配置很可能不一样
+                * 2. instance没有axios后面添加的一些方法：create()/CancelToken()/all()
+        * 2.2.3 axios整体运行流程
+            * ![axios运行流程图](images/axios%E8%BF%90%E8%A1%8C%E6%B5%81%E7%A8%8B.PNG)
+            * 1. axios对象创建过程模拟实现：
+                * ```
+                    // 构造函数
+                    function Axios(config) {
+                        // 初始化，是为了创建default默认属性
+                        this.defaults=config
+                        this.intercepters={
+                            request:{},
+                            response:{}
+                        }
+                    }
+
+                    // 原型上添加相关的方法
+                    Axios.prototype.request=function(config){
+                        console.log('发送AJAX请求 请求的类型为'+config.method);
+                    }
+                    Axios.prototype.get=function(config){
+                        return this.request({method:'GET'})
+                    }
+                    Axios.prototype.post=function(){
+                        return this.request({method:'POST'})
+
+                    }
+
+                    // 声明函数
+                    function createInstance(config) {
+                        // 实例化一个对象
+                            //context.get() context.post() 但是不能当做函数使用 context()
+                        let context=new Axios(config)  
+                        // 创建请求函数
+                            //instance 是一个函数，并且可以传对象 instance({})，此时instance不能 instance.get()
+                        let instance=Axios.prototype.request.bind(context)  
+                        // 将Axios.prototype对象中的方法添加到instance函数对象中
+                        Object.keys(Axios.prototype).forEach(key=>{
+                            instance[key]=Axios.prototype[key].bind(context)
+                        })
+                        // 为instance函数对象添加属性default与interceptors
+                        Object.keys(context).forEach(key=>{
+                            instance[key]=context[key]
+                        })
+                        return instance
+                    }
+
+                    let axios=createInstance()
+
+                    // 发送请求方法1：
+                    // axios({method:'GET'})
+                    // axios({method:'POST'})
+                    
+                    //发送请求方法2：
+                    axios.get({})
+                    axios.post({})
+                  ```
+            * 2. axios发送那个请求过程详解
+                * request(config)=>dispatchRequest(config)=>xhrAdapter(config)
+                    * request(config)：将请求拦截器/dispatchRequest()/响应拦截器通过promise链串连起来，返回promise
+                    * dispatchRequest(config)：转化和请求数据==>调用xhrAdapter()发请求==>请求返回后转换响应数据，返回promise
+                    * xhrAdapter(config)：创建XHR对象，根据config进行相应设置，发送特定请求，并接收响应数据，返回promise
 
 
 ## 总结
