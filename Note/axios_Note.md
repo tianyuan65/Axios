@@ -430,7 +430,7 @@
                     * dispatchRequest(config)：转化和请求数据==>调用xhrAdapter()发请求==>请求返回后转换响应数据，返回promise
                     * xhrAdapter(config)：创建XHR对象，根据config进行相应设置，发送特定请求，并接收响应数据，返回promise
             * 3. axios发送请求过程模拟实现
-                * 首先，**声明构造函数Axios**，在其中初始化配置对象。给Axios函数添加request方法，并给其赋值函数。函数中创建promise对象，调用resolve方法。声明一个数组chains，dispatchRequest函数和undefined，其中undefined的作用的占位，没有undefined就会在运行链条是出问题，也就是返回失败的结果时需要调用它。promise调用then方法，传入的参数就是chains的两个元素，赋值给result，并返回promise结果，在这里result就是Axios函数的执行结果；其次，**声明dispatchRequest构造函数。**dispatchRequest函数的返回值是一个promise实例对象，而这个函数的返回值的结果取决于适配器函数(就是xhrAdapter)的成功与否。既然这个函数的返回值是一个promise对象，那就可以调用then方法，返回的结果(xhrAdapter)为成功的promise那就给函数(dispatchRequest)也返回一个成功的promise对象结果，失败则抛出错误；再次，**声明xhrAdapter构造函数(也就是adapter适配器)**，在函数返回一个新的Promise，并在新的Promise中发送AJAX请求。绑定事件的函数中，若成功则在其中调用resolve方法，并在resolve方法中传入配置对象、响应体、响应头请求对象等作为配置对象的内容，失败则调用reject方法，并在其中返回新的Error方法，里面传入失败时输出的字符串等数值；最后，**创建axios函数**，```let axios=Axios.prototype.request.bind(null)```，并调用axios函数。
+                * 首先，**声明构造函数Axios**，在其中初始化配置对象。给Axios函数添加request方法，并给其赋值函数。函数中创建成功的promise对象(就是promise直接调用了resolve方法)。声明一个数组chains，dispatchRequest函数和undefined，其中undefined的作用的占位，没有undefined就会在运行链条是出问题，也就是返回失败的结果时需要调用它。promise调用then方法，传入的参数就是chains的两个元素，赋值给result，并返回promise结果，在这里result就是Axios函数的执行结果；其次，**声明dispatchRequest构造函数。**dispatchRequest函数的返回值是一个promise实例对象，而这个函数的返回值的结果取决于适配器函数(就是xhrAdapter)的成功与否。既然这个函数的返回值是一个promise对象，那就可以调用then方法，返回的结果(xhrAdapter)为成功的promise那就给函数(dispatchRequest)也返回一个成功的promise对象结果，失败则抛出错误；再次，**声明xhrAdapter构造函数(也就是adapter适配器)**，在函数返回一个新的Promise，并在新的Promise中发送AJAX请求。绑定事件的函数中，若成功则在其中调用resolve方法，并在resolve方法中传入配置对象、响应体、响应头请求对象等作为配置对象的内容，失败则调用reject方法，并在其中返回新的Error方法，里面传入失败时输出的字符串等数值；最后，**创建axios函数**，```let axios=Axios.prototype.request.bind(null)```，并调用axios函数。
                 * 总结就是，从下到上看才容易理解
                 * ```
                     // axios发送请求  axios Axios.prototype.request  bind
@@ -506,7 +506,137 @@
                         console.log(response);
                     })
                   ```
+            * 4. axios拦截器运行过程
+                * 请求：在真正发送请求前执行的回调函数，可以对请求进行检查或配置进行特定处理。成功的回调，传递的默认是config(必须是config)；失败的回调传递的默认是error。
+                * 响应：在请求得到响应后执行的回调函数，可以对响应数据进行特定处理。成功的回调传递的默认是response；失败的回调传递的默认是error。
+                * 拦截器的use方法执行时，是把被当做参数的函数的两个回调保存在request的handlers属性当中，相当于保存回调
+                    * 而在request方法中，也就是axios函数在调用的时，是对数组进行完善，把请求拦截器放在数组的前面，而把响应拦截器放在数组的后面，最终再通过循环的方式，以跳板的形式执行
+                * ![axios拦截器运行过程](images/axios%E6%8B%A6%E6%88%AA%E5%99%A8%E6%89%A7%E8%A1%8C%E8%BF%87%E7%A8%8B.PNG)
+            * 5. axios拦截器模拟运行过程
+                * 首先，**创建Axios构造函数并发送请求**。构造函数中初始化配置对象及拦截器，拦截器里传递两个属性request和response作为对象，这两个属性是下面的拦截器管理器构造函数中的handlers数组会被压入两个函数对象作为数组对象(下面详细说)初始化的。在request方法里创建成功的promise对象和一个数组chains，在chains中传入两个对象dispatchRequest和undefined(为占位而存在的，前面说过)。在处理拦截器的步骤，需要将请求拦截器的回调压入到chains的前面，将响应拦截器的回调压入到chains的后面，```chains.unshift/push(item.fulfilled,item.rejected)```,都需要使用forEach方法遍历request.handlers=[]。再往下，需要从数组chains中一个一个取出回调，第一个就是十个数组当中的第二个请求拦截器的两个回调传入到这其中，然后返回一个新的promise。```promise=promise.then(chains.shift(),chains.shift())```
+                    * ![从chains数组中依次一个一个取出回调，最后返回一个新的promise](images/%E4%BB%8Echains%E4%B8%AD%E4%BE%9D%E6%AC%A1%E4%B8%80%E4%B8%AA%E4%B8%80%E4%B8%AA%E5%8F%96%E5%87%BA%E5%9B%9E%E8%B0%83%EF%BC%8C%E6%89%A7%E8%A1%8C%E5%90%8E%E8%BF%94%E5%9B%9E%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84promise.PNG)
+                    * ![将请求和响应压入到chains数组后输出chains](images/%E5%B0%86%E8%AF%B7%E6%B1%82%E5%92%8C%E5%93%8D%E5%BA%94%E5%8E%8B%E5%85%A5%E5%88%B0chains%E5%90%8E%E8%BE%93%E5%87%BAchains.PNG)
+                * 其次，**创建dispatchRequest构造函数**，其内部返回一个新的promise对象。新的promise对象里调用resolve方法，方法内传入配置对象的内容作为参数。创建实例context和axios函数，使用bind方法将实例context作为参数传入。之后进行遍历，将context属性、config和interceptors添加到axios函数兑现身上。```Object.keys(context).forEach(key=>{axios[key]=context[key]})```
+                    * ![创建axios后interceptors输出结果](images/%E6%9E%84%E5%BB%BA%E5%AE%8Caxios%E5%90%8E%E8%BE%93%E5%87%BA.PNG)
+                * 再次，**创建拦截器管理器构造函数InterceptorManager**，其中创建handlers数组，以便在InterceptorManager的use方法中，把作为参数的两个函数做成对象fulfilled和rejected，压到上面的handlers数组中。最后，**创建两个请求和两个响应**，并分别设置编号one和two，在最后自定义回调发送请求后，可以查看到请求和响应拦截器执行的顺序结果。
+                * ![拦截器执行顺序](images/%E6%8B%A6%E6%88%AA%E5%99%A8%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F.PNG)
+                * ```
+                    // 构造函数
+                    function Axios(config) {
+                        this.config=config
+                        this.interceptors={
+                            request:new InterceptorManager(),
+                            response:new InterceptorManager()
+                        }
+                    }
 
+                    // 发送请求 重点+难点
+                    Axios.prototype.request=function(config){
+                        // 创建一个Promise对象
+                        let promise=Promise.resolve(config)
+                        // 创建一个数组
+                        const chains=[dispatchRequest,undefined]
+                        // 处理拦截器
+                        // 请求拦截器 将请求拦截器的回调，压入到chains的前面  需要遍历request.handlers=[]
+                        this.interceptors.request.handlers.forEach(item=>{
+                            chains.unshift(item.fulfilled,item.rejected)
+                        })
+                        // 响应拦截器 将响应拦截器的回调，压入到chains的后面  需要遍历request.handlers=[]
+                        this.interceptors.response.handlers.forEach(item=>{
+                            chains.push(item.fulfilled,item.rejected)
+                        })
+                        // console.log(chains);
+                        // 遍历
+                        while(chains.length>0){
+                            // 从数组chains中一个一个取出回调 
+                            // 第一个就是十个数组当中的第二个请求拦截器的两个回调传入到这其中，然后返回一个新的promise
+                            promise=promise.then(chains.shift(),chains.shift())
+                        }
+                        return promise
+                    }
+
+                    // 发送请求
+                    function dispatchRequest(config) {
+                        // 必须返回一个新的promise对象，不返回的话，后续axios()没法调用then()
+                        return new Promise((resolve,reject)=>{
+                            resolve({
+                                status:200,
+                                statusText:'OK'
+                            });
+                        })
+                    }
+                    
+                    // 创建实例
+                    let context=new Axios({})
+                    // 创建axios函数
+                    let axios=Axios.prototype.request.bind(context)
+                    // 将context属性 config interceptors 添加到axios函数对象身上
+                    Object.keys(context).forEach(key=>{
+                        axios[key]=context[key]
+                    })
+
+                    // 拦截器管理器构造函数
+                    function InterceptorManager() {
+                        this.handlers=[]
+                    }
+                    InterceptorManager.prototype.use=function(fulfilled,rejected){
+                        // 只要调用下面的axios.interceptors.request/response.use，就把作为参数的两个函数做成对象fulfilled和rejected，压到上面的handlers数组中
+                        this.handlers.push({
+                            fulfilled,
+                            rejected
+                        })
+                    }
+
+                    // 由此以上为功能封装代码；以下为功能测试代码
+                    // 设置1号请求拦截器  config 配置对象
+                    axios.interceptors.request.use(function one(config) {
+                        console.log('请求拦截器 成功 - 1号');
+                        // 修改config中的参数
+                        config.params={a:100}
+                        return config;
+                    }, function one(error) {
+                        console.log('请求拦截器 失败 - 1号');
+                        return Promise.reject(error);
+                    });
+
+                    // 设置2号请求拦截器
+                    axios.interceptors.request.use(function two(config) {
+                        console.log('请求拦截器 成功 - 2号');
+                        // 修改config中的参数
+                        // config.timeout=2000
+                        return config;
+                    }, function two(error) {
+                        console.log('请求拦截器 失败 - 2号');
+                        return Promise.reject(error);
+                    });
+
+                    // 设置1号响应拦截器
+                    axios.interceptors.response.use(function one(response) {
+                        console.log('响应拦截器 成功 1号');
+                        return response.data
+                        // return response;
+                    }, function one(error) {
+                        console.log('响应拦截器 失败 1号');
+                        return Promise.reject(error);
+                    });
+
+                    // 设置2号响应拦截器
+                    axios.interceptors.response.use(function two(response) {
+                        console.log('响应拦截器 成功 2号');
+                        return response;
+                    }, function two(error) {
+                        console.log('响应拦截器 失败 2号');
+                        return Promise.reject(error);
+                    });
+                    
+                    // 发送请求(用户的自定义回调)
+                    axios({
+                        method:'GET',
+                        url:' http://localhost:3000/posts'
+                    }).then(response=>{
+                        console.log(response);
+                    })
+                  ```
 
 ## 总结
 * 构造函数的显式原型对象的方法，实例对象是可以直接调用的

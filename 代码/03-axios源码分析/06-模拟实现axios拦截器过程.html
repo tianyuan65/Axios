@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>06-模拟实现axios拦截器过程</title>
+    <script src="./node_modules/axios/dist/mine-axios.js"></script>
+</head>
+<body>
+    <script>
+        // 构造函数
+        function Axios(config) {
+            this.config=config
+            this.interceptors={
+                request:new InterceptorManager(),
+                response:new InterceptorManager()
+            }
+        }
+
+        // 发送请求 重点+难点
+        Axios.prototype.request=function(config){
+            // 创建一个Promise对象
+            let promise=Promise.resolve(config)
+            // 创建一个数组
+            const chains=[dispatchRequest,undefined]
+            // 处理拦截器
+            // 请求拦截器 将请求拦截器的回调，压入到chains的前面  需要遍历request.handlers=[]
+            this.interceptors.request.handlers.forEach(item=>{
+                chains.unshift(item.fulfilled,item.rejected)
+            })
+            // 响应拦截器 将响应拦截器的回调，压入到chains的后面  需要遍历request.handlers=[]
+            this.interceptors.response.handlers.forEach(item=>{
+                chains.push(item.fulfilled,item.rejected)
+            })
+            // console.log(chains);
+            // 遍历
+            while(chains.length>0){
+                // 从数组chains中一个一个取出回调 
+                // 第一个就是十个数组当中的第二个请求拦截器的两个回调传入到这其中，然后返回一个新的promise
+                promise=promise.then(chains.shift(),chains.shift())
+            }
+            return promise
+        }
+
+        // 发送请求
+        function dispatchRequest(config) {
+            // 必须返回一个新的promise对象，不返回的话，后续axios()没法调用then()
+            return new Promise((resolve,reject)=>{
+                resolve({
+                    status:200,
+                    statusText:'OK'
+                });
+            })
+        }
+
+        // 创建实例
+        let context=new Axios({})
+        // 创建axios函数
+        let axios=Axios.prototype.request.bind(context)
+        // 将context属性 config interceptors 添加到axios函数对象身上
+        Object.keys(context).forEach(key=>{
+            axios[key]=context[key]
+        })
+
+        // 拦截器管理器构造函数
+        function InterceptorManager() {
+            this.handlers=[]
+        }
+        InterceptorManager.prototype.use=function(fulfilled,rejected){
+            // 只要调用下面的axios.interceptors.request/response.use，就把作为参数的两个函数做成对象fulfilled和rejected，压到上面的handlers数组中
+            this.handlers.push({
+                fulfilled,
+                rejected
+            })
+        }
+
+        // 由此以上为功能封装代码；以下为功能测试代码
+        // 设置1号请求拦截器  config 配置对象
+        axios.interceptors.request.use(function one(config) {
+            console.log('请求拦截器 成功 - 1号');
+            // 修改config中的参数
+            config.params={a:100}
+            return config;
+        }, function one(error) {
+            console.log('请求拦截器 失败 - 1号');
+            return Promise.reject(error);
+        });
+
+        // 设置2号请求拦截器
+        axios.interceptors.request.use(function two(config) {
+            console.log('请求拦截器 成功 - 2号');
+            // 修改config中的参数
+            // config.timeout=2000
+            return config;
+        }, function two(error) {
+            console.log('请求拦截器 失败 - 2号');
+            return Promise.reject(error);
+        });
+
+        // 设置1号响应拦截器
+        axios.interceptors.response.use(function one(response) {
+            console.log('响应拦截器 成功 1号');
+            return response.data
+            // return response;
+        }, function one(error) {
+            console.log('响应拦截器 失败 1号');
+            return Promise.reject(error);
+        });
+
+        // 设置2号响应拦截器
+        axios.interceptors.response.use(function two(response) {
+            console.log('响应拦截器 成功 2号');
+            return response;
+        }, function two(error) {
+            console.log('响应拦截器 失败 2号');
+            return Promise.reject(error);
+        });
+
+        // 发送请求(用户的自定义回调)
+        axios({
+            method:'GET',
+            url:' http://localhost:3000/posts'
+        }).then(response=>{
+            console.log(response);
+        })
+    </script>
+</body>
+</html>
