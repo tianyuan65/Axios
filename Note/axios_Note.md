@@ -426,9 +426,9 @@
                   ```
             * 2. axios发送请求过程详解
                 * request(config)=>dispatchRequest(config)=>xhrAdapter(config)
-                    * request(config)：将请求拦截器/dispatchRequest()/响应拦截器通过promise链串连起来，返回promise
-                    * dispatchRequest(config)：转化和请求数据==>调用xhrAdapter()发请求==>请求返回后转换响应数据，返回promise
-                    * xhrAdapter(config)：创建XHR对象，根据config进行相应设置，发送特定请求，并接收响应数据，返回promise
+                    * request(config)：将请求拦截器/dispatchRequest()/响应拦截器通过promise链串连起来，返回promise，最终用axios执行结果拿到最终的结果，用then方法来对执行结果进行输出
+                    * dispatchRequest(config)：转化和请求数据==>调用xhrAdapter()发请求==>请求返回后转换响应数据，返回promise到request
+                    * xhrAdapter(config)：创建XHR对象，根据config进行相应设置，发送特定请求，并接收响应数据，返回promise到dispatchRequest
             * 3. axios发送请求过程模拟实现
                 * 首先，**声明构造函数Axios**，在其中初始化配置对象。给Axios函数添加request方法，并给其赋值函数。函数中创建成功的promise对象(就是promise直接调用了resolve方法)。声明一个数组chains，dispatchRequest函数和undefined，其中undefined的作用的占位，没有undefined就会在运行链条是出问题，也就是返回失败的结果时需要调用它。promise调用then方法，传入的参数就是chains的两个元素，赋值给result，并返回promise结果，在这里result就是Axios函数的执行结果；其次，**声明dispatchRequest构造函数。**dispatchRequest函数的返回值是一个promise实例对象，而这个函数的返回值的结果取决于适配器函数(就是xhrAdapter)的成功与否。既然这个函数的返回值是一个promise对象，那就可以调用then方法，返回的结果(xhrAdapter)为成功的promise那就给函数(dispatchRequest)也返回一个成功的promise对象结果，失败则抛出错误；再次，**声明xhrAdapter构造函数(也就是adapter适配器)**，在函数返回一个新的Promise，并在新的Promise中发送AJAX请求。绑定事件的函数中，若成功则在其中调用resolve方法，并在resolve方法中传入配置对象、响应体、响应头请求对象等作为配置对象的内容，失败则调用reject方法，并在其中返回新的Error方法，里面传入失败时输出的字符串等数值；最后，**创建axios函数**，```let axios=Axios.prototype.request.bind(null)```，并调用axios函数。
                 * 总结就是，从下到上看才容易理解
@@ -753,7 +753,30 @@
                   ```
                     * ![呈现效果](images/%E5%91%88%E7%8E%B0%E6%95%88%E6%9E%9C.PNG)
                     * ![输出效果](images/%E8%BE%93%E5%87%BA%E6%95%88%E6%9E%9C.PNG)
-
+        * 2.2.4 response的整体结构
+            * {
+                data,
+                status,
+                statusText,
+                header,
+                config,
+                request
+              }
+        * 2.2.5 error的整体结构
+            * {
+                message,
+                response,
+                request
+              }
+        * 2.2.6 如何取消未完成的请求
+            * 1. 当配置了cancelToken对象时，保存cancel函数
+                * 1. 创建一个用于将来中断请求的cancelPromise
+                * 2. 并定义一个用于取消请求的cancel函数
+                * 3. 将cancel函数传递(暴露)出来
+            * 2. 调用cancel()取消请求
+                * 1. 执行cancel函数，传入错误信息message
+                * 2. 内部会让cancelP饿哦米色变为成功，且成功的值为一个Cancel对象
+                * 3. 在cancelPromise的成功回调中中断请求，并让发送请求的promise失败，失败的reason为Cancel
 
 ## 总结
 * 构造函数的显式原型对象的方法，实例对象是可以直接调用的
