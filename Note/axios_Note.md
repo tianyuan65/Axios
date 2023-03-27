@@ -637,6 +637,123 @@
                         console.log(response);
                     })
                   ```
+            * 6. axios取消请求
+                * 原理：在cancelToken的身上维护了promise属性，并将改变其状态的变量(resolvePromise)暴露到全局中。在声明全局变量```let cancel=null```保存其值，只要cancel方法在取消请求的函数内调用，内部的resolvePromise就会执行，它(resolvePromise)一执行，resolve函数就会被赋值给resolvePromise，在这一步，this.promise的状态就会变为成功。而它(this.promise)的状态一变为成功，发送请求的方法中的唯一的回调就会执行，唯一的回调一执行，```xhr.abort()```就会执行，这孩子要被执行，发送的请求就会被取消
+            * 7. 模拟实现axios取消请求
+                * 首先，创建Axios构造函数，给Axios的原型添加request方法，其中设置返回值为```dispatchRequest(config)```，在下面创建dispatchRequest构造函数并在dispatchRequest函数中返回```xhrAdapter(config)```。其次，创建xhrAdapter适配器构造函数，在其中返回一个新的promise，并写入关于发送AJAX请求的处理代码。之后在**关于取消请求的处理中**，给配置对象的cancelToken对象身上添加promise，并指定成功的回调，在指定的回调中添加取消请求的方法，```xhr.abort()```。但是这个方法不能在new Promise中直接执行，需要进入配置对象内是否有cancelToken函数的判断中，否则，请求发都发不出去。最后在判断内部，将整体结构设置为失败，```reject(new Error('请求已经被取消'))```。再次，**创建CancelToken构造函数**，传入executor作为参数(这个是重点之一，后续函数传参数的时候很重要)。函数内部声明一个极为普通的变量resolvePromise，并为实例对象添加promise属性，其属性为新的promise对象，在新的promise对象中指定成功的回调，并将resolve赋值给resolvePromise。最后调用executor函数，传入函数作为参数，在函数里面执行resolvePromise函数。最后，声明一个全局变量，```let cancel=null```。在发送请求的单击事件中，检测上一次发送的请求是否已经完成，创建cancelToken的值，并在其内部将参数c的值赋值给cancel，```let cancelToken=new CancelToke(function(c){cancel=c})```。具体函数作为参数的流程如图：
+                    * ![executor的指向](images/executor%E7%9A%84%E6%8C%87%E5%90%91.PNG)
+                    * ![CancelToken的参数指向和递进](images/CancelToken(executor(c)%7Bcancel%3Dc%7D).PNG)
+                * ```
+                    // 创建构造函数
+                    function Axios(config) {
+                        this.config=config
+
+                    }
+                    // 原型的request方法
+                    Axios.prototype.request=function(config){
+                        return dispatchRequest(config)
+                    }
+
+                    // dispatchRequest函数
+                    function dispatchRequest(config) {
+                        return xhrAdapter(config)
+                    }
+                    // xhrAdapter 适配器
+                    function xhrAdapter(config) {
+                        // 发送AJAX请求
+                        return new Promise((resolve,reject)=>{
+                            // 实例化对象
+                            const xhr=new XMLHttpRequest()
+                            // 初始化
+                            xhr.open(config.method,config.url)
+                            // 发送
+                            xhr.send()
+                            // 处理结果
+                            xhr.onreadystatechange=function(){
+                                if(xhr.readyState===4){
+                                    // 判断结果
+                                    if(xhr.status>=200 && xhr.status<300){
+                                        // 设置为成功的状态
+                                        resolve({
+                                            status:xhr.status,
+                                            statusText:xhr.statusText
+                                        })
+                                    }else{
+                                        reject(new Error('请求失败'))
+                                    }
+                                }
+                            }
+                            // 关于取消请求的处理
+                            if(config.cancelToken){
+                                // 对cancelToken对象身上的promise对象指定成功的回调
+                                config.cancelToken.promise.then(value=>{
+                                    // 这行代码不能在new Promise中直接执行，需要进入这个判断，直接执行的话，请求发都发不出去
+                                    xhr.abort()
+                                    // 将整体结构设置为失败
+                                    reject(new Error('请求已经被取消'))
+                                })
+                            }
+                        })
+                    }
+
+                    // 创建axios函数
+                    const context=new Axios({})
+                    const axios=Axios.prototype.request.bind(context)
+
+                    // CancelToken构造函数
+                    function CancelToken(executor) {
+                        // 声明一个变量 它只是个普通变量 
+                        var resolvePromise;
+                        // 为实例对象添加属性
+                        this.promise=new Promise((resolve)=>{
+                            // 将resolve赋值给resolvePromise
+                            resolvePromise=resolve
+                        })
+                        // 调用executor函数
+                        executor(function(){
+                            // 执行resolvePromise函数
+                            resolvePromise()
+                        })
+                    }
+                    
+                    // 获取按钮  以上为模拟实现的代码
+                    const btns=document.querySelectorAll('button')
+                    // 2. 声明全局变量
+                    let cancel=null
+                    // 发送请求
+                    btns[0].onclick=function(){
+                        // 检测上一次请求是否已经完成
+                        if(cancel !== null){
+                            // 取消上一次请求
+                            cancel()
+                        }
+
+                        // 创建cancelToken的值
+                        let cancelToken=new CancelToken(function(c){
+                            // 3. 将c的值赋值给cancel
+                            cancel=c
+                        })
+
+                        axios({
+                            method:'GET',
+                            url:'http://localhost:3000/posts',
+                            // 1. 添加配置对象的属性
+                            cancelToken:cancelToken
+                        }).then(response=>{
+                            console.log(response);
+                            // 将cancel初始化
+                            cancel=null
+                        })
+                    }
+
+                    // 绑定第二个取消请求的事件
+                    btns[1].onclick=function(){
+                        cancel()
+                    }
+                  ```
+                    * ![呈现效果](images/%E5%91%88%E7%8E%B0%E6%95%88%E6%9E%9C.PNG)
+                    * ![输出效果](images/%E8%BE%93%E5%87%BA%E6%95%88%E6%9E%9C.PNG)
+
 
 ## 总结
 * 构造函数的显式原型对象的方法，实例对象是可以直接调用的
