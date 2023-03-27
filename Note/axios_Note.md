@@ -246,9 +246,8 @@
                 ```
             * 2. 请求拦截器和响应拦截器分别都有两个的情况下，各自指定的回调执行顺序与只有单个拦截器情况有所不同。如图所示，会先执行2号请求，再执行1号请求，往后的响应是按照书写顺序输出的。
                 * ![两种拦截器有多个时的执行顺序](images/%E6%89%A7%E8%A1%8C%E9%A1%BA%E5%BA%8F.PNG)
-                * 且在拦截器的指定回调内部可以进行增删改配置对象(config&response)中的参数，在控制台刷新后可以看到修改后的变化。**但我这边不知道是啥原因总执行不该执行的**
+                * 且在拦截器的指定回调内部可以进行增删改配置对象(config&response)中的参数，在控制台刷新后可以看到修改后的变化。在这里只修改了1号请求中config的params，2号请求中config没有修改，因为之前修改了timeout之后总是因为超时，调用响应的失败回调。**轻易不要修改timeout，根据网速、电脑配置等原因，在规定时间内有的用户可能无法接收到成功的响应，所以要么规定的事件宽泛一点，要么别设置，就用初始设定的配置**
                     * ![修改1号请求中config的params](images/%E8%AE%BE%E7%BD%AE%E9%BB%98%E8%AE%A4params.PNG)
-                    * **![后续记得加](images)**
                 * ```
                     // 设置1号请求拦截器  config 配置对象
                     axios.interceptors.request.use(function (config) {
@@ -265,7 +264,7 @@
                     axios.interceptors.request.use(function (config) {
                         console.log('请求拦截器 成功 - 2号');
                         // 修改config中的参数
-                        config.timeout=2000
+                        // config.timeout=2000
                         return config;
                     }, function (error) {
                         console.log('请求拦截器 失败 - 2号');
